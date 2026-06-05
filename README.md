@@ -56,14 +56,9 @@ src/
 ## Cómo ejecutar
 
 1. Clonar el repositorio
-2. Importar como proyecto Java en Eclipse (`File → Import → General → Existing Projects`)
+2. Importar como proyecto Java en Eclipse
 3. Ejecutar `Main.java`
 
 No requiere dependencias externas. Java 8 o superior.
 
 ---
-
-## Integrantes
-
-- Tessera ([@Tessera04](https://github.com/Tessera04))
-- [nombre de tu compañera]
