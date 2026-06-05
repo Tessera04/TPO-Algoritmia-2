@@ -2,7 +2,7 @@
 
 Trabajo Práctico Final — Algoritmos y Estructuras de Datos II / Programación II  
 Curso 559569 | Docente: Matias Ruiz | Entrega: 26/06
-
+Alumnos: Luciana Flores - Matias Gonzalez
 ---
 
 ## Descripción
