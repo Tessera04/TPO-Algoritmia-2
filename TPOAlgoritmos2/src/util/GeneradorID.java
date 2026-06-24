@@ -9,12 +9,16 @@ public class GeneradorID {
 
     private static int contador = 0;
 
-    /**
-     * Devuelve el proximo ID disponible.
-     * Cada llamada incrementa el contador interno.
-     */
     public static int generarID() {
         contador++;
         return contador;
+    }
+
+    public static int getContador() {
+        return contador;
+    }
+
+    public static void setContador(int valor) {
+        contador = valor;
     }
 }

@@ -1,119 +1,106 @@
 package servicios;
 
-import estructura.ComparadorPrioridad;
 import enums.HerramientaSoporte;
-import modelo.Ticket;
-import util.Constantes;
-import util.GeneradorID;
-
+import estructura.ComparadorPrioridad;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.PriorityQueue;
+import modelo.Ticket;
+import util.Constantes;
+import util.GeneradorID;
+import util.PersistenciaJSON;
 
-/**
- * Es el cerebro del programa. Aca vive toda la logica:
- * crear tickets, buscarlos, listar los pendientes, atender
- * al mas prioritario y resolverlos.
- *
- * Usa dos estructuras en paralelo, tal como pide la consigna:
- * - HashMap<Integer, Ticket>: conserva TODOS los tickets (pendientes,
- *   atendidos y resueltos) y permite buscarlos por ID en O(1).
- * - PriorityQueue<Ticket>: ordena unicamente los tickets pendientes,
- *   segun prioridad y, en caso de empate, segun orden de llegada
- *   (criterio definido en ComparadorPrioridad).
- */
 public class GestorTickets {
 
-    private HashMap<Integer, Ticket> tickets;
-    private PriorityQueue<Ticket> colaPrioridad;
+    private final HashMap<Integer, Ticket> ticketsPorId;
+    private final HashMap<String, List<Ticket>> ticketsPorUsuario;
+    private final PriorityQueue<Ticket> colaPrioridad;
+    private final HashMap<String, String> credenciales;
 
     public GestorTickets() {
-        this.tickets = new HashMap<>();
+        this.ticketsPorId = new HashMap<>();
+        this.ticketsPorUsuario = new HashMap<>();
         this.colaPrioridad = new PriorityQueue<>(new ComparadorPrioridad());
+        this.credenciales = new HashMap<>();
+        credenciales.put("LucianaFlores58", "luciana123");
+        credenciales.put("MatiasGonzalez04", "matias1234");
+        cargarDatos();
     }
 
-    /**
-     * Registra un nuevo ticket de soporte. La prioridad se asigna
-     * automaticamente segun la herramienta seleccionada (regla de negocio).
-     * Lo guarda en el HashMap y lo agrega a la cola de prioridad.
-     */
+    private void cargarDatos() {
+        PersistenciaJSON.DatosGuardados datos = PersistenciaJSON.cargar();
+        GeneradorID.setContador(datos.contadorId);
+        for (Ticket t : datos.tickets) {
+            ticketsPorId.put(t.getIdTicket(), t);
+            ticketsPorUsuario.computeIfAbsent(t.getNombreJugador(), k -> new ArrayList<>()).add(t);
+            if (t.getEstado().equals(Constantes.ESTADO_PENDIENTE)) {
+                colaPrioridad.add(t);
+            }
+        }
+    }
+
+    private void guardarDatos() {
+        PersistenciaJSON.guardar(ticketsPorId.values(), GeneradorID.getContador());
+    }
+
     public Ticket crearTicket(String nombreJugador, HerramientaSoporte herramienta, String descripcionProblema) {
         int nuevoId = GeneradorID.generarID();
         Ticket nuevoTicket = new Ticket(nuevoId, nombreJugador, herramienta, descripcionProblema);
 
-        tickets.put(nuevoId, nuevoTicket);
+        ticketsPorId.put(nuevoId, nuevoTicket);
         colaPrioridad.add(nuevoTicket);
+        ticketsPorUsuario.computeIfAbsent(nombreJugador, k -> new ArrayList<>()).add(nuevoTicket);
 
+        guardarDatos();
         return nuevoTicket;
     }
 
-    /**
-     * Busca un ticket por su ID. Devuelve null si no existe.
-     * Funciona sin importar el estado del ticket (Pendiente, Atendido o Resuelto).
-     */
-    public Ticket buscarTicket(int idTicket) {
-        return tickets.get(idTicket);
+    public Ticket buscarTicketPorId(int idTicket) {
+        return ticketsPorId.get(idTicket);
     }
 
-    /**
-     * Atiende el ticket de mayor prioridad pendiente (y mas antiguo, en caso
-     * de empate). Lo saca de la cola y cambia su estado a "Atendido".
-     * El ticket sigue almacenado en el HashMap para poder consultarlo
-     * o resolverlo despues.
-     * Devuelve null si no hay tickets pendientes.
-     */
-    public Ticket atenderTicket() {
+    public List<Ticket> buscarTicketsPorUsuario(String nombreJugador) {
+        return ticketsPorUsuario.getOrDefault(nombreJugador, new ArrayList<>());
+    }
+
+    public boolean validarCredenciales(String usuario, String contrasena) {
+        String guardada = credenciales.get(usuario);
+        return guardada != null && guardada.equals(contrasena);
+    }
+
+    public Ticket verProximoTicket() {
+        return colaPrioridad.peek();
+    }
+
+    public Ticket atenderYResolver(String resolucion) {
         Ticket ticket = colaPrioridad.poll();
-
         if (ticket != null) {
-            ticket.setEstado(Constantes.ESTADO_ATENDIDO);
+            ticket.setEstado(Constantes.ESTADO_RESUELTO);
+            ticket.setResolucion(resolucion);
+            guardarDatos();
         }
-
         return ticket;
     }
 
-    /**
-     * Marca un ticket atendido como "Resuelto" y le agrega el comentario
-     * o resolucion final. Devuelve false si el ticket no existe o si
-     * todavia esta en estado Pendiente (no se puede resolver sin atender antes).
-     */
-    public boolean resolverTicket(int idTicket, String resolucion) {
-        Ticket ticket = tickets.get(idTicket);
-
-        if (ticket == null) {
-            return false;
-        }
-
-        if (ticket.getEstado().equals(Constantes.ESTADO_PENDIENTE)) {
-            return false; // no se puede resolver un ticket que no fue atendido
-        }
-
-        ticket.setEstado(Constantes.ESTADO_RESUELTO);
-        ticket.setResolucion(resolucion);
-        return true;
-    }
-
-    /**
-     * Devuelve todos los tickets registrados en el sistema,
-     * sin importar su estado.
-     */
     public HashMap<Integer, Ticket> listarTodos() {
-        return tickets;
+        return ticketsPorId;
     }
 
-    /**
-     * Devuelve unicamente los tickets que se encuentran en estado Pendiente,
-     * es decir, los que todavia esperan ser atendidos.
-     * No modifica la cola de prioridad, solo la recorre para mostrarla.
-     */
     public List<Ticket> listarPendientes() {
         return new ArrayList<>(colaPrioridad);
     }
 
-    /**
-     * Indica si hay tickets pendientes por atender.
-     */
+    public List<Ticket> listarResueltos() {
+        List<Ticket> resueltos = new ArrayList<>();
+        for (Ticket t : ticketsPorId.values()) {
+            if (t.getEstado().equals(Constantes.ESTADO_RESUELTO)) {
+                resueltos.add(t);
+            }
+        }
+        return resueltos;
+    }
+
     public boolean hayPendientes() {
         return !colaPrioridad.isEmpty();
     }

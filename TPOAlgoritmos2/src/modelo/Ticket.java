@@ -15,7 +15,7 @@ public class Ticket {
     private String nombreJugador;
     private HerramientaSoporte herramienta; // define area, tipo de solicitud y prioridad
     private String descripcionProblema;
-    private int prioridad; // 1 = mas urgente (Pagos), 2 = menos urgente (Cuenta)
+    private int prioridad;
     private String estado; // "Pendiente", "Atendido" o "Resuelto"
     private LocalDateTime ordenLlegada; // usado para desempatar tickets de igual prioridad
     private String resolucion; // comentario final, solo presente si el ticket fue resuelto
@@ -25,9 +25,22 @@ public class Ticket {
         this.nombreJugador = nombreJugador;
         this.herramienta = herramienta;
         this.descripcionProblema = descripcionProblema;
-        this.prioridad = herramienta.getPrioridad(); // asignacion automatica segun la herramienta
-        this.estado = "Pendiente"; // todo ticket nace pendiente
+        this.prioridad = herramienta.getPrioridad();
+        this.estado = "Pendiente";
         this.ordenLlegada = LocalDateTime.now();
+        this.resolucion = null;
+    }
+
+    // Constructor para deserialización desde JSON (preserva el ordenLlegada original)
+    public Ticket(int idTicket, String nombreJugador, HerramientaSoporte herramienta,
+                  String descripcionProblema, LocalDateTime ordenLlegada) {
+        this.idTicket = idTicket;
+        this.nombreJugador = nombreJugador;
+        this.herramienta = herramienta;
+        this.descripcionProblema = descripcionProblema;
+        this.prioridad = herramienta.getPrioridad();
+        this.estado = "Pendiente";
+        this.ordenLlegada = ordenLlegada;
         this.resolucion = null;
     }
 
